@@ -1,0 +1,50 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}City index{% endblock %}
+
+{% block body %}
+    <h1>City index</h1>
+
+    <div class="count">
+        <h3> Nombre total de villes pour cette recherche : {{ pagination.getTotalItemCount }}</h3>
+    </div>
+    <section class="container">
+        <table class="table table-hover">
+            <tr>
+                {# sorting of properties based on query components #}
+                <th{% if pagination.isSorted('c.full_name') %} class="sorted"{% endif %}>
+                    {{ knp_pagination_sortable(pagination, 'Nom', 'c.full_name') }}
+                </th>
+                <th{% if pagination.isSorted('c.postal_code') %} class="sorted"{% endif %}>
+                    {{ knp_pagination_sortable(pagination, 'Code postal', 'c.postal_code') }}
+                </th>
+                <th{% if pagination.isSorted('c.department') %} class="sorted"{% endif %}>
+                    {{ knp_pagination_sortable(pagination, 'Département', 'c.department') }}
+                </th>
+            </tr>
+
+            {# table body #}
+            {% for city in pagination %}
+                <tr {% if loop.index is odd %}class="color"{% endif %}>
+                    <td>
+                        <a class="text-decoration-none text-dark" href="{{ path("city_show", {"id" : city.id}) }}">
+                            {{ city.fullName }}
+                        </a>
+                    </td>
+                    <td>{{ city.postalCode }}</td>
+                    <td>
+                        <a class="text-decoration-none text-dark" href="{{ path("department_show", {"id" : city.department.id }) }}" >
+                            {{ city.department.name }}
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+    {# display navigation #}
+    <div class="navigation mt-5 d-flex justify-content-center">
+        {{ knp_pagination_render(pagination, "@KnpPaginator/Pagination/twitter_bootstrap_v4_pagination.html.twig") }}
+    </div>
+
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Région index{% endblock %}
+
+{% block body %}
+    <h1>Région index</h1>
+
+    <div class="count">
+        <h3> Nombre total de région pour cette recherche : {{ pagination.getTotalItemCount }}</h3>
+    </div>
+    <section class="container">
+        <table class="table table-hover">
+            <tr>
+                {# sorting of properties based on query components #}
+                <th{% if pagination.isSorted('r.name') %} class="sorted"{% endif %}>
+                    {{ knp_pagination_sortable(pagination, 'Nom', 'r.name') }}
+                </th>
+                <th{% if pagination.isSorted('c.postal_code') %} class="sorted"{% endif %}>
+                    {{ knp_pagination_sortable(pagination, 'Code', 'r.code') }}
+                </th>
+            </tr>
+
+            {# table body #}
+            {% for region in pagination %}
+                <tr {% if loop.index is odd %}class="color"{% endif %}>
+                    <td>
+                        <a class="text-decoration-none text-dark" href="{{ path("region_show", {"id" : region.id}) }}">
+                            {{ region.name }}
+                        </a>
+                    </td>
+                    <td>{{ region.code }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+    {# display navigation #}
+    <div class="navigation mt-5 d-flex justify-content-center">
+        {{ knp_pagination_render(pagination, "@KnpPaginator/Pagination/twitter_bootstrap_v4_pagination.html.twig") }}
+    </div>
+
+{% endblock %}

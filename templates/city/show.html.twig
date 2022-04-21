@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}City{% endblock %}
+
+{% block body %}
+    <h1>{{ city.fullName }} ({{ city.postalCode }})</h1>
+
+    <section class="container">
+        <div>Informations concernant cette ville:</div>
+        {% for name, stat in stats %}
+        <div class="d-flex flex-column justify-content-center align-content-center border my-2">
+            <p class="p-1 m-1">
+                Propriétés de type "{{ name }}" vendues au cours de l'année 2021 : {{ stat.number }}
+                </br>
+                Prix moyen du m2 : {{ stat.m2 }}
+            </p>
+        </div>
+        {% endfor %}
+
+    </section>
+
+    <a class="btn btn-primary" href="{{ path('city_index') }}">Retour à la liste</a>
+{% endblock %}
