@@ -7,56 +7,52 @@ use App\Tools\Encoding;
 class ParseFileService{
     public function parseCsv ($pathCsv)
     {
-        //$this->log4Php->hclog(self::LOGGER, 'inf', '-- ENTER parseFileCsv --');
+         print("-- ENTER parseFileCsv --\n\r");
 
         $taille = 2048;
-        $delimiteur = ";";
+        $delimiteur = ",";
         $allContacts = [];
         $arrayPreparation = [];
+        $labels = [];
 
         if(file_exists($pathCsv)){
 
             if($fp = fopen($pathCsv, 'rb')){
 
-                $ligne = fgetcsv($fp, $taille);
-                $labels = str_getcsv($ligne[0], $delimiteur);
+                $firstLine = fgetcsv($fp, $taille);
 
-                foreach($labels as $arrayKey => $value){
+                foreach($firstLine as $arrayKey => $value){
                     $value = Encoding::toUTF8($value);
                     $value = Encoding::fixUTF8($value);
 
                     $labels[$arrayKey] = $value;
                 }
 
+
                 while ($ligne = fgetcsv($fp, $taille)) {
 
-                    foreach($ligne as $elem) {
-                        $contact = str_getcsv($elem, $delimiteur);
+                    foreach ($ligne as $key => $value){
+                        $value = Encoding::toUTF8($value);
+                        $value = Encoding::fixUTF8($value);
 
-                        foreach ($contact as $key => $value){
-                            $value = Encoding::toUTF8($value);
-                            $value = Encoding::fixUTF8($value);
-
-                            $arrayPreparation[$labels[$key]] = $value;
-                        }
-
-                        $allContacts[] = $arrayPreparation;
+                        $arrayPreparation[$labels[$key]] = $value;
                     }
+
+                    $allContacts[] = $arrayPreparation;
                 }
 
                 fclose ($fp);
+                print("-- END parseFileCsv --\n\r");
                 return $allContacts;
             }
 
             $error = "Ouverture du fichier ".$pathCsv." impossible";
             print_r($error."\n\r");
-            //$this->log4Php->hclog(self::LOGGER, 'err',  $error);
             return false;
         }
 
         $error = "Fichier ".$pathCsv." inexistant.";
         print_r($error."\n\r");
-        //$this->log4Php->hclog(self::LOGGER, 'err',  $error);
 
         return false;
     }
@@ -84,6 +80,7 @@ class ParseFileService{
             foreach($line as $key => $value) {
                 $value = Encoding::toUTF8($value);
                 $value = Encoding::fixUTF8($value);
+
                 $arrayPreparation[$labels[$key]] = $value;
             }
 

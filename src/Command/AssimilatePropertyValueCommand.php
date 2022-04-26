@@ -7,6 +7,7 @@ use App\Entity\PropertyValue;
 use App\Repository\CityRepository;
 use App\Repository\DepartmentRepository;
 use App\Repository\PropertyValueRepository;
+use App\Service\ChangeFileExtensionService;
 use App\Tools\GZTempFile;
 use Doctrine\ORM\EntityManagerInterface;
 use PharData;
@@ -26,13 +27,15 @@ class AssimilatePropertyValueCommand extends Command
     private $cityRepository;
     private $propertyRepository;
     private $departmentRepository;
+    private $changeFileExtensionService;
 
     public function __construct(
         EntityManagerInterface  $entityManager,
         ParseFileService        $parseFile,
         CityRepository          $cityRepository,
         PropertyValueRepository $propertyRepository,
-        DepartmentRepository    $departmentRepository
+        DepartmentRepository    $departmentRepository,
+        ChangeFileExtensionService $changeFileExtension
     )
     {
         parent::__construct();
@@ -41,46 +44,54 @@ class AssimilatePropertyValueCommand extends Command
         $this->cityRepository = $cityRepository;
         $this->propertyRepository = $propertyRepository;
         $this->departmentRepository = $departmentRepository;
+        $this->changeFileExtensionService = $changeFileExtension;
     }
 
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->em->getConnection()->getConfiguration()->setSQLLogger();
 
-        $year = "2021";
-        $departments = $this->departmentRepository->findAll();
-        $alReadyTreated = [
-            "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24",
-            "25", "26", "27", "28", "29", "30", "2A", "2B", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46",
-            "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70",
-            "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94",
-        ];
+        $year = "2016";
+        //$departments = $this->departmentRepository->findAll();
 
-        foreach ($departments as $department){
+        /*foreach ($departments as $department){
             $code_department = $department->getCode();
 
             if(!in_array($code_department, $alReadyTreated, true)){
-                $url_file = "https://files.data.gouv.fr/geo-dvf/latest/csv/$year/departements/$code_department.csv.gz";
+                $urlFile = "https://files.data.gouv.fr/geo-dvf/latest/csv/$year/departements/$code_department.csv.gz";
 
-                $directory_save = '/var/www/sites/projetperso/DataCity/public/csv/PropertyValue/';
-                $file_name = $this->downloadFileGz($url_file, $directory_save);
+                $directorySave = '/var/www/sites/projetperso/DataCity/public/csv/PropertyValue/';
+                $fileName = $this->downloadFileGz($urlFile, $directorySave);
 
-                if($file_name){
-                    print_r("Download of $url_file");
-                    print_r($this->treatment($file_name));
+                if($fileName){
+                    print_r("Download of $urlFile");
+                    print_r($this->treatment($fileName));
                 }else{
-                    print_r("Error with $url_file");
+                    print_r("Error with $urlFile");
                 }
             }
             $this->em->clear();
+        }*/
+
+        $urlFile = "https://files.data.gouv.fr/geo-dvf/latest/csv/$year/departements/05.csv.gz";
+        $directorySave = '/var/www/sites/projetperso/DataCity/public/csv/PropertyValue/';
+        $fileName = $this->downloadFileGz($urlFile, $directorySave);
+
+        if($fileName){
+            print_r("Download of $urlFile \n\r");
+
+            $csvFileName = $this->changeFileExtensionService->changeGzToCsv($fileName);
+            print_r($this->treatment($csvFileName));
+        }else{
+            print_r("Error with $urlFile");
         }
 
         return 1;
     }
 
-    private function treatment($file_name): string
+    private function treatment($fileName): string
     {
-        $dataFile = $this->parseFile->parseGz($file_name);
+        $dataFile = $this->parseFile->parseCsv($fileName);
 
         if($this->assimilation($dataFile)){
             return "Tout s'est bien passé !\n\r";
@@ -103,7 +114,6 @@ class AssimilatePropertyValueCommand extends Command
                 $propertyValue = new PropertyValue();
             }
 
-
             $propertyValue->setMutationId($line["id_mutation"])
                 ->setMutationDate(new \DateTime('@'.strtotime($line["date_mutation"])))
                 ->setPrice((int)$line["valeur_fonciere"])
@@ -122,7 +132,7 @@ class AssimilatePropertyValueCommand extends Command
                 ->setNatureCulture($line["nature_culture"])
                 ->setCodeNatureCultureSpeciale($line["code_nature_culture_speciale"])
                 ->setNatureCultureSpeciale($line["nature_culture_speciale"])
-                ->setCity($this->cityRepository->findOneBy(["postal_code" => $line["code_postal"], "code" => substr($line["code_commune"], -3)]) ?? $cityNotFound);
+                ->setCity($this->cityRepository->findOneBy(["postal_code" => $line["code_postal"], "code" => (int) substr($line["code_commune"], -3)]) ?? $cityNotFound);
             $this->em->persist($propertyValue);
 
             if(($batch % 100) === 0) {
@@ -139,16 +149,16 @@ class AssimilatePropertyValueCommand extends Command
         return true;
     }
 
-    private function downloadFileGz($url_file, $directory_save): string
+    private function downloadFileGz($urlFile, $directorySave): string
     {
-        $ch = curl_init($url_file);
+        $ch = curl_init($urlFile);
 
         // Use basename() function to return
         // the base name of file
-        $file_name = basename($url_file);
+        $fileName = basename($urlFile);
 
         // Save file into file location
-        $save_file_loc = $directory_save . $file_name;
+        $save_file_loc = $directorySave . $fileName;
 
         // Open file
         $fp = fopen($save_file_loc, 'wb');

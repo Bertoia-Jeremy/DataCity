@@ -31,3 +31,5 @@ yarn-error.log
 .idea/
 
 .env.test
+
+public/csv/
